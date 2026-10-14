@@ -1,0 +1,39 @@
+{
+    "name": "echoproof/laravel",
+    "description": "Record real Laravel traffic as Echoproof snapshots, without a proxy",
+    "type": "library",
+    "license": ["MIT", "Apache-2.0"],
+    "keywords": ["laravel", "testing", "regression", "replay", "echoproof", "ai-agents"],
+    "homepage": "https://github.com/est57/echoproof-laravel",
+    "require": {
+        "php": "^8.2",
+        "illuminate/contracts": "^11.0|^12.0",
+        "illuminate/http": "^11.0|^12.0",
+        "illuminate/support": "^11.0|^12.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0|^10.0",
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Echoproof\\Laravel\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Echoproof\\Laravel\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Echoproof\\Laravel\\EchoproofServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable"
+}
