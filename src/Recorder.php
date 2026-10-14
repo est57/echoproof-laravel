@@ -41,7 +41,8 @@ final class Recorder
         return $rate >= 1.0 || mt_rand() / mt_getrandmax() < $rate;
     }
 
-    public function record(Request $request, Response $response, int $latencyMs): void
+    /** @param  list<array>  $outbound */
+    public function record(Request $request, Response $response, int $latencyMs, array $outbound = []): void
     {
         if ($response instanceof StreamedResponse || $response instanceof BinaryFileResponse) {
             return;
@@ -53,7 +54,7 @@ final class Recorder
             return;
         }
 
-        $this->writer->append([
+        $exchange = [
             'id' => bin2hex(random_bytes(6)),
             'recorded_at_ms' => (int) floor(microtime(true) * 1000),
             'request' => [
@@ -68,7 +69,11 @@ final class Recorder
                 'body' => $this->sanitizer->body(Body::decode($responseBytes, $response->headers->get('content-type'))),
                 'latency_ms' => max(0, $latencyMs),
             ],
-        ]);
+        ];
+        if ($outbound !== []) {
+            $exchange['outbound'] = $outbound;
+        }
+        $this->writer->append($exchange);
     }
 
     /** @return array<string, string> */

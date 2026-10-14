@@ -53,6 +53,24 @@ final class Sanitizer
         return $headers;
     }
 
+    public function url(string $url): string
+    {
+        $query = parse_url($url, PHP_URL_QUERY);
+        if (! is_string($query) || $query === '') {
+            return $url;
+        }
+        $parts = [];
+        foreach (explode('&', $query) as $pair) {
+            [$name, $value] = array_pad(explode('=', $pair, 2), 2, null);
+            $key = strtolower(urldecode((string) $name));
+            $parts[] = $value !== null && $this->redacts($key, urldecode($value))
+                ? $name.'='.rawurlencode(self::REDACTED)
+                : $pair;
+        }
+
+        return str_replace('?'.$query, '?'.implode('&', $parts), $url);
+    }
+
     public function body(string|array $body): string|array
     {
         if (is_array($body) && array_key_exists('json', $body)) {

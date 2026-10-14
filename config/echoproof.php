@@ -6,6 +6,14 @@ return [
 
     'path' => env('ECHOPROOF_PATH', storage_path('echoproof/traffic.jsonl')),
 
+    // Answers outbound HTTP calls from the recording and blocks all others. Refused when APP_ENV=production.
+    'replay' => (bool) env('ECHOPROOF_REPLAY', false),
+
+    // When set, the /__echoproof routes require this value in the x-echoproof-token header.
+    'replay_token' => env('ECHOPROOF_REPLAY_TOKEN'),
+
+    'replay_path' => storage_path('echoproof/replay'),
+
     // Adds the recorder as global middleware. Set false to attach it to routes yourself.
     'global' => true,
 

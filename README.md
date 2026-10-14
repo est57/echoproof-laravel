@@ -28,6 +28,27 @@ echoproof check -s storage/echoproof/traffic.jsonl \
 
 Or in CI with the [GitHub Action](https://github.com/est57/echoproof-action). See the [Echoproof README](https://github.com/est57/echoproof) for intent judging and the MCP server for coding agents.
 
+## Third-party calls
+
+While recording, calls made through Laravel's `Http` client are stored with the request that triggered them, redacted with the same rules (including query string parameters such as `api_key`).
+
+Run the base and PR builds in replay mode so that replays never reach a real third party:
+
+```dotenv
+ECHOPROOF_REPLAY=true
+```
+
+In replay mode:
+
+- Every outbound `Http` call is blocked unless it belongs to a replayed request.
+- Calls made while handling a replayed request are answered from the recording, so both builds receive the same third-party responses.
+- A call that was never recorded gets a `599` response and is reported as unrecorded.
+- Echoproof compares what each build sent to third parties, so a change such as a different `amount` sent to a payment gateway is reported even when the service's own response is unchanged.
+
+Replay mode is refused when `APP_ENV=production`. It adds two routes, `POST /__echoproof/fixtures/{id}` and `GET /__echoproof/outbound/{id}`, which exist only in replay mode. Set `ECHOPROOF_REPLAY_TOKEN` to require that value in the `x-echoproof-token` header, and send it from `echoproof.toml` under `[replay] headers`.
+
+Replay mode needs echoproof 0.2.0 or later. Calls made outside Laravel's `Http` client, such as SDKs with their own Guzzle client, are not intercepted yet.
+
 ## Configuration
 
 ```bash
@@ -38,6 +59,8 @@ php artisan vendor:publish --tag=echoproof-config
 |---|---|---|
 | `enabled` | `ECHOPROOF_RECORD`, `false` | Record traffic. |
 | `path` | `ECHOPROOF_PATH`, `storage/echoproof/traffic.jsonl` | Snapshot file. |
+| `replay` | `ECHOPROOF_REPLAY`, `false` | Answer outbound calls from the recording and block all others. |
+| `replay_token` | `ECHOPROOF_REPLAY_TOKEN` | Required value of `x-echoproof-token` on the replay routes. |
 | `global` | `true` | Register as global middleware. Set `false` and use the `echoproof` route middleware alias to record selected routes only. |
 | `sample_rate` | `ECHOPROOF_SAMPLE_RATE`, `1.0` | Share of requests to record. |
 | `only` / `except` | `[]` / Telescope, Horizon, Debugbar, Livewire, `up` | Path patterns (`Str::is`, no leading slash). |
