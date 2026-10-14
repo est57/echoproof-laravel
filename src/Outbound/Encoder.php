@@ -20,7 +20,7 @@ final class Encoder
         return [
             'request' => $this->request($request),
             'response' => $response === null
-                ? ['status' => 0, 'headers' => [], 'body' => ['text' => 'connection failed']]
+                ? ['status' => 0, 'headers' => new \stdClass, 'body' => ['text' => 'connection failed']]
                 : $this->response($response),
         ];
     }

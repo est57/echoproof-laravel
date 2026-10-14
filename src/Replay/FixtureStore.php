@@ -38,10 +38,10 @@ final class FixtureStore
         $this->write("outbound-{$id}", $calls);
     }
 
-    /** @return list<array> */
-    public function takeCaptured(string $id): array
+    /** Returns the stored JSON list unchanged, so empty objects stay {}. */
+    public function takeCapturedJson(string $id): string
     {
-        return $this->take("outbound-{$id}");
+        return $this->takeRaw("outbound-{$id}") ?? '[]';
     }
 
     private function write(string $name, array $calls): void
@@ -59,14 +59,21 @@ final class FixtureStore
 
     private function take(string $name): array
     {
-        $path = $this->path($name);
-        if (! is_file($path)) {
-            return [];
-        }
-        $calls = json_decode((string) file_get_contents($path), true);
-        @unlink($path);
+        $calls = json_decode($this->takeRaw($name) ?? '[]', true);
 
         return is_array($calls) ? array_values($calls) : [];
+    }
+
+    private function takeRaw(string $name): ?string
+    {
+        $path = $this->path($name);
+        if (! is_file($path)) {
+            return null;
+        }
+        $json = (string) file_get_contents($path);
+        @unlink($path);
+
+        return $json;
     }
 
     private function path(string $name): string

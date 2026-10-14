@@ -44,7 +44,9 @@ final class ReplayModeTest extends TestCase
             ->assertJson(['charge' => 'ch_9', 'charge_status' => 201, 'wa_status' => 599])
             ->assertHeader('x-echoproof-outbound', '2');
 
-        $captured = $this->getJson('/__echoproof/outbound/ex1')->assertOk()->json('outbound');
+        $fetched = $this->getJson('/__echoproof/outbound/ex1')->assertOk();
+        $this->assertStringNotContainsString('"headers":[]', $fetched->getContent());
+        $captured = $fetched->json('outbound');
         $this->assertCount(2, $captured);
         $this->assertSame(54000, $captured[0]['request']['body']['json']['amount']);
         $this->assertArrayNotHasKey('unrecorded', $captured[0]);

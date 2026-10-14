@@ -36,7 +36,7 @@ final class Responder
         $recorded = isset($this->queues[$key]) ? array_shift($this->queues[$key]) : null;
         $call = ['request' => $this->encoder->request($request)];
         if ($recorded === null) {
-            $call['response'] = ['status' => self::UNRECORDED_STATUS, 'headers' => [], 'body' => ['text' => 'echoproof: unrecorded outbound call']];
+            $call['response'] = ['status' => self::UNRECORDED_STATUS, 'headers' => new \stdClass, 'body' => ['text' => 'echoproof: unrecorded outbound call']];
             $call['unrecorded'] = true;
             $this->captured[] = $call;
 

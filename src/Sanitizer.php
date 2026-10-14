@@ -39,11 +39,16 @@ final class Sanitizer
     }
 
     /**
+     * Empty headers become an object so they encode as {} rather than [].
+     *
      * @param  array<string, string>  $headers
-     * @return array<string, string>
+     * @return array<string, string>|stdClass
      */
-    public function headers(array $headers): array
+    public function headers(array $headers): array|stdClass
     {
+        if ($headers === []) {
+            return new stdClass;
+        }
         foreach ($headers as $name => $value) {
             if (isset($this->headers[$name])) {
                 $headers[$name] = self::REDACTED;

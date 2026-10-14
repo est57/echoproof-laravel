@@ -38,7 +38,7 @@ final class ReplayController
             return $denied;
         }
 
-        return new JsonResponse(['outbound' => $this->store->takeCaptured($id)]);
+        return JsonResponse::fromJsonString('{"outbound":'.$this->store->takeCapturedJson($id).'}');
     }
 
     private function deny(Request $request, string $id): ?JsonResponse
