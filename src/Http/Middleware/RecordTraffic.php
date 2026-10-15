@@ -26,6 +26,7 @@ final class RecordTraffic
     {
         if ($this->recorder->wants($request)) {
             $request->attributes->set(self::STARTED, hrtime(true));
+            $this->recorder->begin();
             $this->outbound->start();
         }
 

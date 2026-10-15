@@ -8,6 +8,7 @@ use Closure;
 use Echoproof\Laravel\Outbound\Encoder;
 use Echoproof\Laravel\Replay\FixtureStore;
 use Echoproof\Laravel\Replay\Responder;
+use Echoproof\Laravel\Sanitizer;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,6 +23,7 @@ final class ReplayOutbound
         private readonly FixtureStore $store,
         private readonly Encoder $encoder,
         private readonly Factory $http,
+        private readonly Sanitizer $sanitizer,
     ) {
     }
 
@@ -32,11 +34,12 @@ final class ReplayOutbound
             return $next($request);
         }
 
+        $this->sanitizer->reset();
         $responder = new Responder($this->store->takeFixtures($id), $this->encoder);
         $this->http->fake(fn ($request) => $responder($request));
         $response = $next($request);
 
-        $captured = $responder->captured();
+        $captured = $this->sanitizer->scrub($responder->captured());
         if ($captured !== []) {
             $this->store->putCaptured($id, $captured);
         }

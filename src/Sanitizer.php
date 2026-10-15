@@ -19,6 +19,12 @@ final class Sanitizer
     /** @var list<string> */
     private array $patterns = [];
 
+    /** @var array<string, true> Values redacted so far, erased everywhere by scrub(). */
+    private array $secrets = [];
+
+    /** Shorter values would erase ordinary text. */
+    private const MIN_SECRET = 8;
+
     /**
      * @param  list<string>  $headers
      * @param  list<string>  $fields
@@ -51,6 +57,7 @@ final class Sanitizer
         }
         foreach ($headers as $name => $value) {
             if (isset($this->headers[$name])) {
+                $this->remember($value);
                 $headers[$name] = self::REDACTED;
             }
         }
@@ -68,12 +75,78 @@ final class Sanitizer
         foreach (explode('&', $query) as $pair) {
             [$name, $value] = array_pad(explode('=', $pair, 2), 2, null);
             $key = strtolower(urldecode((string) $name));
-            $parts[] = $value !== null && $this->redacts($key, urldecode($value))
-                ? $name.'='.rawurlencode(self::REDACTED)
-                : $pair;
+            $secret = $value !== null && $this->redacts($key, urldecode($value));
+            if ($secret) {
+                $this->remember(urldecode((string) $value));
+            }
+            $parts[] = $secret ? $name.'='.rawurlencode(self::REDACTED) : $pair;
         }
 
         return str_replace('?'.$query, '?'.implode('&', $parts), $url);
+    }
+
+    /** Collects secrets from a query string that stays as recorded, such as the inbound path. */
+    public function query(string $url): void
+    {
+        $this->url($url);
+    }
+
+    /** Starts a new exchange: secrets from an earlier request never carry over. */
+    public function reset(): void
+    {
+        $this->secrets = [];
+    }
+
+    /**
+     * Erases every value redacted so far wherever else it appears, for example an API key a
+     * third party echoes back in its response, then forgets them.
+     */
+    public function scrub(array $data): array
+    {
+        $secrets = array_keys($this->secrets);
+        $this->secrets = [];
+        if ($secrets === []) {
+            return $data;
+        }
+        usort($secrets, fn (string $a, string $b) => strlen($b) <=> strlen($a));
+
+        return $this->erase($data, $secrets);
+    }
+
+    private function erase(mixed $value, array $secrets): mixed
+    {
+        if (is_string($value)) {
+            return str_replace($secrets, self::REDACTED, $value);
+        }
+        if (is_array($value)) {
+            return array_map(fn (mixed $item) => $this->erase($item, $secrets), $value);
+        }
+        if ($value instanceof stdClass) {
+            foreach (get_object_vars($value) as $key => $child) {
+                $value->{$key} = $this->erase($child, $secrets);
+            }
+        }
+
+        return $value;
+    }
+
+    private function remember(mixed $value): void
+    {
+        if (! is_string($value)) {
+            return;
+        }
+        $value = trim($value);
+        if ($value === self::REDACTED) {
+            return;
+        }
+        if (strlen($value) >= self::MIN_SECRET) {
+            $this->secrets[$value] = true;
+        }
+        foreach (preg_split('/\s+/', $value) ?: [] as $part) {
+            if (strlen($part) >= self::MIN_SECRET) {
+                $this->secrets[$part] = true;
+            }
+        }
     }
 
     public function body(string|array $body): string|array
@@ -89,9 +162,12 @@ final class Sanitizer
     {
         if ($value instanceof stdClass) {
             foreach (get_object_vars($value) as $key => $child) {
-                $value->{$key} = $this->redacts(strtolower((string) $key), $child)
-                    ? self::REDACTED
-                    : $this->value($child);
+                if ($this->redacts(strtolower((string) $key), $child)) {
+                    $this->remember($child);
+                    $value->{$key} = self::REDACTED;
+                } else {
+                    $value->{$key} = $this->value($child);
+                }
             }
 
             return $value;

@@ -79,7 +79,7 @@ A failure to write the snapshot is logged as a warning and never breaks the requ
 
 ## Privacy
 
-Recorded traffic can contain personal data even after redaction. Record on staging or test environments where you can, review the redaction lists for your domain (national ID numbers, phone numbers and so on), and do not commit snapshots taken from production.
+Once a value is redacted somewhere in an exchange (an authorization header, an `api_key` query parameter, a `password` field), it is also erased wherever else it appears in that exchange, such as a third party echoing the key back in its response or a token in the request URL. Recorded traffic can still contain personal data after redaction. Record on staging or test environments where you can, review the redaction lists for your domain (national ID numbers, phone numbers and so on), and do not commit snapshots taken from production.
 
 ## License
 

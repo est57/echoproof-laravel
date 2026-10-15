@@ -20,6 +20,11 @@ final class Recorder
     ) {
     }
 
+    public function begin(): void
+    {
+        $this->sanitizer->reset();
+    }
+
     public function wants(Request $request): bool
     {
         if (! ($this->config['enabled'] ?? false)) {
@@ -54,6 +59,7 @@ final class Recorder
             return;
         }
 
+        $this->sanitizer->query($request->getRequestUri());
         $exchange = [
             'id' => bin2hex(random_bytes(6)),
             'recorded_at_ms' => (int) floor(microtime(true) * 1000),
@@ -73,7 +79,7 @@ final class Recorder
         if ($outbound !== []) {
             $exchange['outbound'] = $outbound;
         }
-        $this->writer->append($exchange);
+        $this->writer->append($this->sanitizer->scrub($exchange));
     }
 
     /** @return array<string, string> */
